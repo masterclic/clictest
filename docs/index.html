@@ -131,7 +131,12 @@ async function api(path, params) {
 
 function fill(select, values, placeholder) {
   select.replaceChildren(new Option(placeholder, ''));
-  (values || []).forEach(v => select.add(new Option(v, v)));
+  (values || []).forEach(v => {
+    // Browsers size the open list to its longest label; the value stays complete.
+    const option = new Option(v.length > 90 ? v.slice(0, 89) + '…' : v, v);
+    option.title = v;
+    select.add(option);
+  });
   select.disabled = !values || values.length === 0;
 }
 
@@ -171,7 +176,7 @@ $('project').onchange = async () => {
       api('/configurationdetails', { projectName, envName })
     ]);
     state.suiteNames = s.TestSuiteNames || [];
-    state.configurations = c.Configurations || [];
+    state.configurations = [...new Set(c.Configurations || [])].filter(Boolean).sort();
     $('addSuite').disabled = false;
     addSuite();
     status('serverStatus', state.suiteNames.length + ' test suites, ' + state.configurations.length + ' URLs.', 'ok');
@@ -197,6 +202,7 @@ function addSuite() {
   const version = field(card, 'version', 'Version');
   const platform = field(card, 'platform', 'Platform');
   const url = field(card, 'url', 'URL');
+  url.parentElement.style.gridColumn = '1 / -1';
   const browsers = card.querySelector('.browsers');
   fill(suite, state.suiteNames, 'Select test suite');
   fill(url, state.configurations, 'Select URL');
