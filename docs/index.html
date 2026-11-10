@@ -69,7 +69,7 @@
       <div><label for="project">Project</label><select id="project" disabled><option value="">Sign in first</option></select></div>
     </div>
     <div id="serverStatus" class="status"></div>
-    <p class="hint">The password goes only to the ClicTest server and is never saved. The workflow itself signs in with repository secrets.</p>
+    <p class="hint">The password is never saved. It goes to the ClicTest server and, when you use Run now, to the workflow run as a masked input.</p>
   </section>
 
   <section>
@@ -97,6 +97,7 @@
       <div><label for="token">Access token</label><input id="token" type="password" autocomplete="off">
         <div class="hint">Needs Actions write access to the repository. Kept in this tab only.</div></div>
     </div>
+    <p class="hint">Runs as the ClicTest user signed in above. The workflow file must declare the username and password inputs (see examples/clictest-run.yml).</p>
     <div class="row"><button id="runNow" class="primary">Run now</button></div>
     <div id="runStatus" class="status"></div>
   </section>
@@ -276,7 +277,9 @@ document.querySelectorAll('[data-copy]').forEach(btn => btn.onclick = async () =
 $('runNow').onclick = async () => {
   const list = suites(), apiBase = $('apiBase').value.trim().replace(/\/+$/, ''), repo = $('repo').value.trim();
   const workflow = $('workflow').value.trim(), ref = $('ref').value.trim(), token = $('token').value.trim();
+  const username = $('userName').value.trim(), password = $('password').value;
   if (!$('env').value || !$('project').value) return status('runStatus', 'Pick an environment and project first.', 'err');
+  if (!username || !password) return status('runStatus', 'Enter your ClicTest username and password in step 1.', 'err');
   if (!list.length || list.some(s => !s.browsers.length)) return status('runStatus', 'Every test suite needs at least one browser.', 'err');
   if (!/^[^/\s]+\/[^/\s]+$/.test(repo) || !workflow || !ref || !token) return status('runStatus', 'Fill repository, workflow file, branch and token.', 'err');
   $('runNow').disabled = true;
@@ -285,7 +288,7 @@ $('runNow').onclick = async () => {
     const res = await fetch(apiBase + '/repos/' + repo + '/actions/workflows/' + encodeURIComponent(workflow) + '/dispatches', {
       method: 'POST',
       headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ref, inputs: { 'env-name': $('env').value, 'project-name': $('project').value, 'test-suites': JSON.stringify(list) } })
+      body: JSON.stringify({ ref, inputs: { 'env-name': $('env').value, 'project-name': $('project').value, username, password, 'test-suites': JSON.stringify(list) } })
     });
     if (res.status !== 204 && res.status !== 200) {
       const text = await res.text();

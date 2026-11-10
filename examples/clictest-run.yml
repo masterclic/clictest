@@ -14,17 +14,30 @@ on:
       test-suites:
         description: Test suites JSON (generate it with the ClicTest configurator)
         required: true
+      username:
+        description: ClicTest user (filled by the configurator; blank uses the CLICTEST_USER secret)
+        required: false
+      password:
+        description: ClicTest password (filled by the configurator; blank uses the CLICTEST_PASSWORD secret)
+        required: false
 
 jobs:
   clictest:
     runs-on: ubuntu-latest
     steps:
+      # Must stay first: hides the password in the logs of every later step.
+      # Reads the event file because any ${{ inputs.password }} here would itself be logged.
+      - name: Mask ClicTest password
+        shell: bash
+        run: |
+          password=$(jq -r '.inputs.password // ""' "$GITHUB_EVENT_PATH")
+          [ -z "$password" ] || echo "::add-mask::$password"
       - id: clictest
         # Gitea: http://gitea.smartintelectual.com:3000/smartintelectual/clictest-action@v1
         uses: masterclic/clictest@v1
         with:
           env-name: ${{ inputs.env-name }}
           project-name: ${{ inputs.project-name }}
-          username: ${{ secrets.CLICTEST_USER }}
-          password: ${{ secrets.CLICTEST_PASSWORD }}
+          username: ${{ inputs.username || secrets.CLICTEST_USER }}
+          password: ${{ inputs.password || secrets.CLICTEST_PASSWORD }}
           test-suites: ${{ inputs.test-suites }}

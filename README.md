@@ -67,7 +67,8 @@ Action repository (once):
 Each test repository:
 
 1. Copy `examples/clictest-run.yml` to `.github/workflows/clictest-run.yml` and commit it to the branch you run from.
-2. Settings > Secrets and variables > Actions > New repository secret: `CLICTEST_USER`, `CLICTEST_PASSWORD`.
+2. Optional: Settings > Secrets and variables > Actions > New repository secret: `CLICTEST_USER`, `CLICTEST_PASSWORD`.
+   Needed only for runs that have no Configurator user (Actions tab with blank fields, or your own automatic triggers).
 3. Check **ClicTest Run** shows under the Actions tab.
 
 Access token for Run now:
@@ -84,7 +85,9 @@ Branch that holds the workflow (e.g. `master`), Access token.
 | Cannot reach ... must allow cross-origin requests | `http://` service URL or no CORS headers: use the HTTPS URL, enable the CorsFilter |
 | HTTP 404 Not Found | Workflow file missing in that repository, wrong repository, or wrong branch (`main` vs `master`) |
 | HTTP 403 Resource not accessible by personal access token | Token lacks Actions write, or repository not selected on the fine-grained token |
-| Run fails at sign-in | `CLICTEST_USER` / `CLICTEST_PASSWORD` secrets missing or wrong |
+| HTTP 422 Unexpected inputs | Workflow file predates the `username` / `password` inputs: copy `examples/clictest-run.yml` again |
+| Missing required input CLICTEST_USERNAME | Started without a Configurator user and the secrets are not set |
+| Run fails at sign-in | Configurator username / password wrong, or `CLICTEST_USER` / `CLICTEST_PASSWORD` secrets wrong |
 
 
 ## Configurator UI (GitHub Pages)
@@ -97,8 +100,8 @@ Setup:
 
 1. Repository settings > Pages > Deploy from branch `master`, folder `/docs`. The page is served at
    `https://masterclic.github.io/clictest/`. Gitea has no Pages: host `docs/index.html` on any static web server.
-2. In each repository that runs tests, add `examples/clictest-run.yml` as `.github/workflows/clictest-run.yml`
-   plus the `CLICTEST_USER` / `CLICTEST_PASSWORD` secrets.
+2. In each repository that runs tests, add `examples/clictest-run.yml` as `.github/workflows/clictest-run.yml`.
+   Run now starts the workflow as the ClicTest user signed in on the page, so each person uses their own account.
 3. Run now needs an access token with Actions write permission on that repository
    (GitHub fine-grained token: "Actions: Read and write"; Gitea: token with `write:repository`).
    The token stays in the browser tab and goes only to the API base you enter.
@@ -141,6 +144,9 @@ java ClicTest.java --self-test
 ## Security note
 
 `/getuser` takes the password as a query parameter, so it can show up in ClicTest server and proxy access logs. Use HTTPS for `service-url`, and move the server to POST or token auth when possible.
+
+Run now sends the password as a `workflow_dispatch` input. The workflow's first step masks it in the logs; keep that step first in any copy of the workflow.
+Inputs are not encrypted like secrets: anyone with write access to the repository can change the workflow and read the password of the next person who runs it. Limit write access, and prefer private repositories.
 
 ## Releasing
 
