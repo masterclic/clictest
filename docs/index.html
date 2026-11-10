@@ -91,7 +91,7 @@
     <div class="grid">
       <div><label for="apiBase">API base</label><input id="apiBase" value="https://api.github.com">
         <div class="hint">Gitea: http://gitea.example.com:3000/api/v1</div></div>
-      <div><label for="repo">Repository (owner/name)</label><input id="repo" placeholder="RajuKondaru/my-app"></div>
+      <div><label for="repo">Repository (owner/name)</label><input id="repo" placeholder="masterclic/my-app"></div>
       <div><label for="workflow">Workflow file</label><input id="workflow" value="clictest-run.yml"></div>
       <div><label for="ref">Branch</label><input id="ref" value="main"></div>
       <div><label for="token">Access token</label><input id="token" type="password" autocomplete="off">
@@ -250,7 +250,7 @@ function render() {
   const q = s => JSON.stringify(s || '');
   $('stepYaml').value = [
     '- id: clictest',
-    '  uses: RajuKondaru/clictest-action@v1',
+    '  uses: masterclic/clictest@v1',
     '  with:',
     '    env-name: ' + q($('env').value),
     '    project-name: ' + q($('project').value),

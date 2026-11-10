@@ -21,7 +21,7 @@ jobs:
     steps:
       - id: clictest
         # Gitea: http://gitea.smartintelectual.com:3000/smartintelectual/clictest-action@v1
-        uses: RajuKondaru/clictest-action@v1
+        uses: masterclic/clictest@v1
         with:
           env-name: ${{ inputs.env-name }}
           project-name: ${{ inputs.project-name }}

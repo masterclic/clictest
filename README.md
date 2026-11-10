@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - id: clictest
-        uses: RajuKondaru/clictest-action@v1
+        uses: masterclic/clictest@v1
         with:
           env-name: preprodone
           project-name: Sugarcrm
@@ -52,7 +52,7 @@ Gitea: same workflow under `.gitea/workflows/` (or `.github/workflows/`), but re
 
 Prerequisites:
 
-- Actions enabled for the test repository (Settings > Actions > General: allow all actions, or allow `RajuKondaru/clictest-action@*`).
+- Actions enabled for the test repository (Settings > Actions > General: allow all actions, or allow `masterclic/clictest@*`).
 - ClicTest service reachable from GitHub-hosted runners over HTTPS:
   `https://preprod.clictest.com:8443/ClicTestJenkinsService/rest/jenkinsServices`. A private-network service needs a self-hosted runner.
 - For the Configurator page: CORS on the service (Tomcat `org.apache.catalina.filters.CorsFilter` in the service `web.xml`,
@@ -61,8 +61,8 @@ Prerequisites:
 
 Action repository (once):
 
-1. `RajuKondaru/clictest-action` is public and tagged `v1.0.0` / `v1` (see Releasing).
-2. Settings > Pages > Deploy from a branch: `master`, folder `/docs`. Configurator: `https://rajukondaru.github.io/clictest-action/`.
+1. `masterclic/clictest` is tagged `v1.0.0` / `v1` (see Releasing).
+2. Settings > Pages > Deploy from a branch: `master`, folder `/docs`. Configurator: `https://masterclic.github.io/clictest/`.
 
 Each test repository:
 
@@ -96,7 +96,7 @@ then **Copy** the `test-suites` JSON / workflow step, or **Run now** to start th
 Setup:
 
 1. Repository settings > Pages > Deploy from branch `master`, folder `/docs`. The page is served at
-   `https://rajukondaru.github.io/clictest-action/`. Gitea has no Pages: host `docs/index.html` on any static web server.
+   `https://masterclic.github.io/clictest/`. Gitea has no Pages: host `docs/index.html` on any static web server.
 2. In each repository that runs tests, add `examples/clictest-run.yml` as `.github/workflows/clictest-run.yml`
    plus the `CLICTEST_USER` / `CLICTEST_PASSWORD` secrets.
 3. Run now needs an access token with Actions write permission on that repository
@@ -144,7 +144,7 @@ java ClicTest.java --self-test
 
 ## Releasing
 
-`action.yml` sits at the repository root, so workflows reference `owner/clictest-action@<tag>`.
+`action.yml` sits at the repository root, so workflows reference `masterclic/clictest@<tag>`.
 Tag a release and move the major tag:
 
 ```bash
