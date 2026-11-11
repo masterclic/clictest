@@ -13,8 +13,11 @@ inputs:
     description: ClicTest user name. Pass via secrets.
     required: true
   password:
-    description: ClicTest password. Pass via secrets.
-    required: true
+    description: >
+      ClicTest password. Pass via secrets. A workflow_dispatch input named "password" (sent by the
+      configurator's Run now) takes precedence; the action reads and masks it itself.
+    required: false
+    default: ''
   test-suites:
     description: >
       JSON array of test suites. Each item: testSuiteName, testSuiteVersion, url, platform, browsers (array).

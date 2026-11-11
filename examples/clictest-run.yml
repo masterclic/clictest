@@ -23,15 +23,9 @@ on:
 
 jobs:
   clictest:
+    # Self-hosted runner instead: runs-on: [self-hosted, Windows]  (Windows needs Git for Windows for bash)
     runs-on: ubuntu-latest
     steps:
-      # Must stay first: hides the password in the logs of every later step.
-      # Reads the event file because any ${{ inputs.password }} here would itself be logged.
-      - name: Mask ClicTest password
-        shell: bash
-        run: |
-          password=$(jq -r '.inputs.password // ""' "$GITHUB_EVENT_PATH")
-          [ -z "$password" ] || echo "::add-mask::$password"
       - id: clictest
         # Gitea: http://gitea.smartintelectual.com:3000/smartintelectual/clictest-action@v1
         uses: masterclic/clictest@v1
@@ -39,5 +33,5 @@ jobs:
           env-name: ${{ inputs.env-name }}
           project-name: ${{ inputs.project-name }}
           username: ${{ inputs.username || secrets.CLICTEST_USER }}
-          password: ${{ inputs.password || secrets.CLICTEST_PASSWORD }}
+          password: ${{ secrets.CLICTEST_PASSWORD }}  # Run now password: read and masked by the action
           test-suites: ${{ inputs.test-suites }}

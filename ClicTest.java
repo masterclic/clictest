@@ -37,7 +37,11 @@ public class ClicTest {
 		String envName = required("CLICTEST_ENV_NAME");
 		String projectName = required("CLICTEST_PROJECT_NAME");
 		String userName = required("CLICTEST_USERNAME");
-		String password = required("CLICTEST_PASSWORD");
+		String password = dispatchPassword(env("CLICTEST_PASSWORD", ""));
+		if (password.isEmpty()) {
+			System.err.println("::error::Missing required input CLICTEST_PASSWORD");
+			System.exit(1);
+		}
 		List<Object> suites = asList(parseJson(required("CLICTEST_TEST_SUITES")));
 		String jobName = env("CLICTEST_JOB_NAME", env("GITHUB_REPOSITORY", "github-actions"));
 		String buildNumber = env("GITHUB_RUN_NUMBER", "0");
@@ -202,6 +206,31 @@ public class ClicTest {
 		return v;
 	}
 
+	/**
+	 * The configurator's Run now sends the password as the workflow_dispatch input "password".
+	 * It is read from the event file and masked here, because passing ${{ inputs.password }} through
+	 * "with:" would print it in the step log before any mask applies. Falls back to the password input.
+	 */
+	static String dispatchPassword(String fallback) {
+		String path = System.getenv("GITHUB_EVENT_PATH");
+		if (path == null || path.isBlank() || !Files.isRegularFile(Path.of(path))) return fallback;
+		String p;
+		try {
+			p = eventInput(Files.readString(Path.of(path)), "password");
+		} catch (Exception e) {
+			System.out.println("::warning::Could not read the workflow event file; using the password input.");
+			return fallback;
+		}
+		if (p.isEmpty()) return fallback;
+		System.out.println("::add-mask::" + p);
+		return p;
+	}
+
+	static String eventInput(String eventJson, String name) {
+		Object inputs = asMap(parseJson(eventJson)).get("inputs");
+		return inputs instanceof Map ? str(asMap(inputs).get(name)) : "";
+	}
+
 	static void append(String envFile, String text) throws Exception {
 		String path = System.getenv(envFile);
 		if (path != null && !path.isBlank()) {
@@ -328,6 +357,8 @@ public class ClicTest {
 		q.put("a b", "x&y");
 		q.put("n", null);
 		check("u?a+b=x%26y&n=".equals(buildUrl("u", q)), "url encoding");
+		check("p\"w".equals(eventInput("{\"ref\":\"m\",\"inputs\":{\"password\":\"p\\\"w\"},\"n\":1.5e3}", "password")), "event input");
+		check("".equals(eventInput("{\"ref\":\"m\",\"commits\":[]}", "password")), "event without inputs");
 		System.out.println("self-test OK");
 	}
 

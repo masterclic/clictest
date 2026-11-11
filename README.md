@@ -89,6 +89,23 @@ Branch that holds the workflow (e.g. `master`), Access token.
 | Missing required input CLICTEST_USERNAME | Started without a Configurator user and the secrets are not set |
 | Run fails at sign-in | Configurator username / password wrong, or `CLICTEST_USER` / `CLICTEST_PASSWORD` secrets wrong |
 
+## Self-hosted runner
+
+Use one when the ClicTest service or the browsers are on a private network (for example `Clictest-Windows-Runner-01`).
+
+1. Register the runner on the test repository (Settings > Actions > Runners > New self-hosted runner) and run it as a service.
+   It must show **Idle** there. A runner registered on another repository or organization is not visible to this one.
+2. In the workflow, replace `runs-on: ubuntu-latest` with the runner's labels:
+   ```yaml
+   runs-on: [self-hosted, Windows]
+   ```
+   To pin one machine, add a custom label to it (Runners > the runner > Labels) and use `[self-hosted, <label>]`.
+3. Windows runners need Git for Windows, because the action runs in `bash`.
+   Java: `actions/setup-java` downloads a JDK, so the runner needs internet access; otherwise install JDK 17+ and set `java-version: ''`.
+
+Self-hosted runners execute workflow code from the repository. GitHub advises against using them on public repositories:
+a fork pull request can bring its own workflow that runs on your machine. Prefer a private test repository, or at least
+set Settings > Actions > General > "Require approval for all outside collaborators".
 
 ## Configurator UI (GitHub Pages)
 
@@ -145,7 +162,8 @@ java ClicTest.java --self-test
 
 `/getuser` takes the password as a query parameter, so it can show up in ClicTest server and proxy access logs. Use HTTPS for `service-url`, and move the server to POST or token auth when possible.
 
-Run now sends the password as a `workflow_dispatch` input. The workflow's first step masks it in the logs; keep that step first in any copy of the workflow.
+Run now sends the password as a `workflow_dispatch` input. The action reads it from the event file and masks it before any request.
+Never pass `${{ inputs.password }}` to a step yourself: the runner prints `with:` and `env:` values in the log before any mask applies.
 Inputs are not encrypted like secrets: anyone with write access to the repository can change the workflow and read the password of the next person who runs it. Limit write access, and prefer private repositories.
 
 ## Releasing
