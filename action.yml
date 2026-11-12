@@ -72,7 +72,7 @@ runs:
         distribution: temurin
         java-version: ${{ inputs.java-version }}
 
-    # Windows runners often have no bash (Git for Windows), so use the built-in Windows PowerShell there.
+    # Windows runners often have no bash (Git for Windows), so use cmd there (no PowerShell execution policy to trip over).
     # ponytail: env block duplicated for the two shells; keep both in sync.
     - id: run
       if: runner.os != 'Windows'
@@ -93,8 +93,8 @@ runs:
 
     - id: run-windows
       if: runner.os == 'Windows'
-      shell: powershell
-      run: java "$env:GITHUB_ACTION_PATH/ClicTest.java"
+      shell: cmd
+      run: '@java "%GITHUB_ACTION_PATH%/ClicTest.java"'
       env:
         CLICTEST_ENV_NAME: ${{ inputs.env-name }}
         CLICTEST_PROJECT_NAME: ${{ inputs.project-name }}

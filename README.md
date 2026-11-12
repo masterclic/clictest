@@ -100,7 +100,7 @@ Use one when the ClicTest service or the browsers are on a private network (for 
    runs-on: [self-hosted, Windows]
    ```
    To pin one machine, add a custom label to it (Runners > the runner > Labels) and use `[self-hosted, <label>]`.
-3. Windows runners need nothing extra: the action runs Java through the built-in Windows PowerShell (Linux and macOS use `bash`).
+3. Windows runners need nothing extra: the action runs Java through `cmd` (Linux and macOS use `bash`).
    Java: `actions/setup-java` downloads a JDK, so the runner needs internet access; otherwise install JDK 17+ and set `java-version: ''`.
 
 Self-hosted runners execute workflow code from the repository. GitHub advises against using them on public repositories:
