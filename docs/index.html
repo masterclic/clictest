@@ -108,6 +108,14 @@ const $ = id => document.getElementById(id);
 const state = { userId: '', configurations: [], suiteNames: [] };
 const cache = {};
 
+// Each ClicTest Jenkins service sends executions to its own server's hub and reads status from its own
+// database, so a run must use the service of the environment it targets.
+// ponytail: fixed map; move it to the server's /envdetails reply if environments change often.
+const SERVICE_BY_ENV = {
+  preprodone: 'https://preprod.clictest.com:8443/ClicTestJenkinsService/rest/jenkinsServices',
+  staging: 'https://staging.clictest.com:8443/ClicTestJenkinsService/rest/jenkinsServices'
+};
+
 // Remember non-secret fields per viewer; page works without storage.
 const KEEP = ['serviceUrl', 'userName', 'apiBase', 'repo', 'workflow', 'ref'];
 try { KEEP.forEach(k => { const v = localStorage.getItem('clictest.' + k); if (v) $(k).value = v; }); } catch (e) {}
@@ -149,6 +157,16 @@ $('loadEnvs').onclick = async () => {
     $('signIn').disabled = false;
     status('serverStatus', (j.Environment || []).length + ' environments loaded.', 'ok');
   } catch (e) { status('serverStatus', e.message, 'err'); }
+};
+
+$('env').onchange = () => {
+  const service = SERVICE_BY_ENV[$('env').value];
+  if (service) $('serviceUrl').value = service;
+  fill($('project'), [], 'Sign in first');
+  $('suites').replaceChildren();
+  $('addSuite').disabled = true;
+  render();
+  status('serverStatus', service ? 'Using the ' + $('env').value + ' service: ' + service : '');
 };
 
 $('signIn').onclick = async () => {
@@ -261,6 +279,7 @@ function render() {
     '  with:',
     '    env-name: ' + q($('env').value),
     '    project-name: ' + q($('project').value),
+    '    service-url: ' + q(base()),
     '    username: ${{ secrets.CLICTEST_USER }}',
     '    password: ${{ secrets.CLICTEST_PASSWORD }}',
     "    test-suites: '" + json.replace(/'/g, "''") + "'"
@@ -288,7 +307,7 @@ $('runNow').onclick = async () => {
     const res = await fetch(apiBase + '/repos/' + repo + '/actions/workflows/' + encodeURIComponent(workflow) + '/dispatches', {
       method: 'POST',
       headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ref, inputs: { 'env-name': $('env').value, 'project-name': $('project').value, username, password, 'test-suites': JSON.stringify(list) } })
+      body: JSON.stringify({ ref, inputs: { 'env-name': $('env').value, 'project-name': $('project').value, username, password, 'service-url': base(), 'test-suites': JSON.stringify(list) } })
     });
     if (res.status !== 204 && res.status !== 200) {
       const text = await res.text();

@@ -86,6 +86,7 @@ Branch that holds the workflow (e.g. `master`), Access token.
 | HTTP 404 Not Found | Workflow file missing in that repository, wrong repository, or wrong branch (`main` vs `master`) |
 | HTTP 403 Resource not accessible by personal access token | Token lacks Actions write, or repository not selected on the fine-grained token |
 | HTTP 422 Unexpected inputs | Workflow file predates the `username` / `password` inputs: copy `examples/clictest-run.yml` again |
+| Staging run executes on the preprod hub | Each ClicTest Jenkins service runs tests on its own server. Pick the environment in the Configurator (it switches the Service URL), or set `service-url` to that environment's service |
 | Missing required input CLICTEST_USERNAME | Started without a Configurator user and the secrets are not set |
 | Run fails at sign-in | Configurator username / password wrong, or `CLICTEST_USER` / `CLICTEST_PASSWORD` secrets wrong |
 

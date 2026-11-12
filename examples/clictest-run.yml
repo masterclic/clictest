@@ -20,6 +20,10 @@ on:
       password:
         description: ClicTest password (filled by the configurator; blank uses the CLICTEST_PASSWORD secret)
         required: false
+      service-url:
+        description: ClicTest Jenkins service of the environment (filled by the configurator)
+        required: false
+        default: https://preprod.clictest.com:8443/ClicTestJenkinsService/rest/jenkinsServices
 
 jobs:
   clictest:
@@ -33,6 +37,7 @@ jobs:
         with:
           env-name: ${{ inputs.env-name }}
           project-name: ${{ inputs.project-name }}
+          service-url: ${{ inputs.service-url }}
           username: ${{ inputs.username || secrets.CLICTEST_USER }}
           password: ${{ secrets.CLICTEST_PASSWORD }}  # Run now password: read and masked by the action
           test-suites: ${{ inputs.test-suites }}
