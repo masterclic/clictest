@@ -55,26 +55,46 @@ inputs:
 outputs:
   result:
     description: success or failure
-    value: ${{ steps.run.outputs.result }}
+    value: ${{ steps.run.outputs.result || steps.run-windows.outputs.result }}
   html-report-url:
     description: First HTML report URL returned by ClicTest.
-    value: ${{ steps.run.outputs.html-report-url }}
+    value: ${{ steps.run.outputs.html-report-url || steps.run-windows.outputs.html-report-url }}
   pdf-report-url:
     description: First PDF report URL returned by ClicTest.
-    value: ${{ steps.run.outputs.pdf-report-url }}
+    value: ${{ steps.run.outputs.pdf-report-url || steps.run-windows.outputs.pdf-report-url }}
 
 runs:
   using: composite
   steps:
     - if: inputs.java-version != ''
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@v5
       with:
         distribution: temurin
         java-version: ${{ inputs.java-version }}
 
+    # Windows runners often have no bash (Git for Windows), so use the built-in Windows PowerShell there.
+    # ponytail: env block duplicated for the two shells; keep both in sync.
     - id: run
+      if: runner.os != 'Windows'
       shell: bash
       run: java "$GITHUB_ACTION_PATH/ClicTest.java"
+      env:
+        CLICTEST_ENV_NAME: ${{ inputs.env-name }}
+        CLICTEST_PROJECT_NAME: ${{ inputs.project-name }}
+        CLICTEST_USERNAME: ${{ inputs.username }}
+        CLICTEST_PASSWORD: ${{ inputs.password }}
+        CLICTEST_TEST_SUITES: ${{ inputs.test-suites }}
+        CLICTEST_SERVICE_URL: ${{ inputs.service-url }}
+        CLICTEST_JOB_NAME: ${{ inputs.job-name }}
+        CLICTEST_CLIENT_IP: ${{ inputs.client-ip }}
+        CLICTEST_MAX_PARALLEL: ${{ inputs.max-parallel }}
+        CLICTEST_POLL_INTERVAL_SECONDS: ${{ inputs.poll-interval-seconds }}
+        CLICTEST_TIMEOUT_MINUTES: ${{ inputs.timeout-minutes }}
+
+    - id: run-windows
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: java "$env:GITHUB_ACTION_PATH/ClicTest.java"
       env:
         CLICTEST_ENV_NAME: ${{ inputs.env-name }}
         CLICTEST_PROJECT_NAME: ${{ inputs.project-name }}

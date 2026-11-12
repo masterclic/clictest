@@ -23,7 +23,7 @@ on:
 
 jobs:
   clictest:
-    # Self-hosted Windows runner (e.g. Clictest-Windows-Runner-01). Needs Git for Windows (bash).
+    # Self-hosted Windows runner (e.g. Clictest-Windows-Runner-01).
     runs-on: [self-hosted, Windows]
     steps:
       - uses: actions/checkout@v4
@@ -35,3 +35,4 @@ jobs:
           username: ${{ inputs.username || secrets.CLICTEST_USER }}
           password: ${{ secrets.CLICTEST_PASSWORD }}  # Run now password: read and masked by the action
           test-suites: ${{ inputs.test-suites }}
+          java-version: ''  # use the Java already installed on the runner (JDK 11+ on PATH)

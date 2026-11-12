@@ -23,7 +23,8 @@ on:
 
 jobs:
   clictest:
-    # Self-hosted runner instead: runs-on: [self-hosted, Windows]  (Windows needs Git for Windows for bash)
+    # Self-hosted runner instead: runs-on: [self-hosted, Windows]
+    # and add  java-version: ''  under with: to use the runner's own JDK instead of downloading one.
     runs-on: ubuntu-latest
     steps:
       - id: clictest
