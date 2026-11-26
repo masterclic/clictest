@@ -24,6 +24,9 @@ on:
         description: ClicTest Jenkins service of the environment (filled by the configurator)
         required: false
         default: https://preprod.clictest.com:8443/ClicTestJenkinsService/rest/jenkinsServices
+      client-ip:
+        description: IP of the machine whose ClicTest client agent runs local browsers (filled by the configurator)
+        required: false
 
 jobs:
   clictest:
@@ -37,6 +40,7 @@ jobs:
           env-name: ${{ inputs.env-name }}
           project-name: ${{ inputs.project-name }}
           service-url: ${{ inputs.service-url }}
+          client-ip: ${{ inputs.client-ip }}
           username: ${{ inputs.username || secrets.CLICTEST_USER }}
           password: ${{ secrets.CLICTEST_PASSWORD }}  # Run now password: read and masked by the action
           test-suites: ${{ inputs.test-suites }}

@@ -43,6 +43,7 @@
   .browsers { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 4px 0; min-height: 30px; }
   .browsers label { display: flex; gap: 6px; align-items: center; font-weight: 400; font-size: 13px; color: var(--ink); margin: 0; }
   .browsers input { width: auto; }
+  .browsers .group { flex-basis: 100%; font-size: 12px; font-weight: 600; color: var(--muted); margin-top: 4px; }
   .hint { font-size: 12px; color: var(--muted); }
   .out-head { display: flex; justify-content: space-between; align-items: center; margin: 12px 0 4px; }
 </style>
@@ -105,7 +106,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const state = { userId: '', configurations: [], suiteNames: [] };
+const state = { userId: '', configurations: [], suiteNames: [], clientIp: '' };
 const cache = {};
 
 // Each ClicTest Jenkins service sends executions to its own server's hub and reads status from its own
@@ -162,6 +163,7 @@ $('loadEnvs').onclick = async () => {
 $('env').onchange = () => {
   const service = SERVICE_BY_ENV[$('env').value];
   if (service) $('serviceUrl').value = service;
+  state.clientIp = '';
   fill($('project'), [], 'Sign in first');
   $('suites').replaceChildren();
   $('addSuite').disabled = true;
@@ -202,6 +204,28 @@ $('project').onchange = async () => {
   } catch (e) { status('serverStatus', e.message, 'err'); }
 };
 
+// Local browsers, as in the Jenkins plugin: the ClicTest client agent on this machine reports its browsers to the
+// agent service, keyed by the IP the agent service sees. Values are LOCALHOST_<browser>_<major version>, and the run
+// sends that IP as clientIp. Any failure (no agent, no CORS) just leaves the local list empty.
+async function localBrowsers() {
+  const agent = new URL(base()).origin + '/clictest-agent-service/api/websocket';
+  try {
+    if (!state.clientIp) {
+      const r = await fetch(agent + '/getClientIp');
+      if (!r.ok) return [];
+      state.clientIp = (await r.text()).trim();
+    }
+    const res = await fetch(agent + '/browsers?clientIp=' + encodeURIComponent(state.clientIp));
+    if (!res.ok) return [];
+    const list = await res.json();
+    return (Array.isArray(list) ? list : []).filter(b => b && b.name && b.version)
+      .map(b => 'LOCALHOST_' + b.name + '_' + String(b.version).split('.')[0]);
+  } catch (e) { return []; }
+}
+
+const isLocal = b => b.startsWith('LOCALHOST_');
+const usesLocal = list => list.some(s => s.browsers.some(isLocal));
+
 function field(card, cls, text) {
   const wrap = document.createElement('div');
   const lab = document.createElement('label'); lab.textContent = text;
@@ -241,13 +265,23 @@ function addSuite() {
     render();
     if (!platform.value) return;
     try {
-      const j = await api('/browserversion', { platform: platform.value, userId: state.userId, envName: $('env').value });
-      (j.Browsers_Version || []).forEach(b => {
-        const lab = document.createElement('label');
-        const box = document.createElement('input'); box.type = 'checkbox'; box.value = b; box.onchange = render;
-        lab.append(box, b);
-        browsers.append(lab);
-      });
+      const [j, local] = await Promise.all([
+        api('/browserversion', { platform: platform.value, userId: state.userId, envName: $('env').value }),
+        localBrowsers()
+      ]);
+      const group = (title, values, text) => {
+        if (!values.length) return;
+        const head = document.createElement('div'); head.className = 'group'; head.textContent = title;
+        browsers.append(head);
+        values.forEach(b => {
+          const lab = document.createElement('label');
+          const box = document.createElement('input'); box.type = 'checkbox'; box.value = b; box.onchange = render;
+          lab.append(box, text(b));
+          browsers.append(lab);
+        });
+      };
+      group('ClicTest browsers', j.Browsers_Version || [], b => b);
+      group('Local browsers (' + state.clientIp + ')', local, b => b.slice('LOCALHOST_'.length).replace('_', ' '));
       if (!browsers.children.length) browsers.textContent = 'No browsers for this platform';
     } catch (e) { status('serverStatus', e.message, 'err'); }
   };
@@ -270,7 +304,7 @@ function suites() {
 
 function render() {
   document.querySelectorAll('.suite').forEach((card, i) => card.querySelector('.title').textContent = 'Test suite ' + (i + 1));
-  const json = JSON.stringify(suites());
+  const list = suites(), json = JSON.stringify(list);
   $('suitesJson').value = json;
   const q = s => JSON.stringify(s || '');
   $('stepYaml').value = [
@@ -282,6 +316,7 @@ function render() {
     '    service-url: ' + q(base()),
     '    username: ${{ secrets.CLICTEST_USER }}',
     '    password: ${{ secrets.CLICTEST_PASSWORD }}',
+    ...(usesLocal(list) ? ['    client-ip: ' + q(state.clientIp)] : []),
     "    test-suites: '" + json.replace(/'/g, "''") + "'"
   ].join('\n');
 }
@@ -307,7 +342,9 @@ $('runNow').onclick = async () => {
     const res = await fetch(apiBase + '/repos/' + repo + '/actions/workflows/' + encodeURIComponent(workflow) + '/dispatches', {
       method: 'POST',
       headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ref, inputs: { 'env-name': $('env').value, 'project-name': $('project').value, username, password, 'service-url': base(), 'test-suites': JSON.stringify(list) } })
+      // client-ip only when a local browser is picked, so workflow files without that input keep working otherwise.
+      body: JSON.stringify({ ref, inputs: { 'env-name': $('env').value, 'project-name': $('project').value, username, password,
+        'service-url': base(), 'test-suites': JSON.stringify(list), ...(usesLocal(list) ? { 'client-ip': state.clientIp } : {}) } })
     });
     if (res.status !== 204 && res.status !== 200) {
       const text = await res.text();

@@ -10,7 +10,7 @@ No build step: `ClicTest.java` runs through the JDK source launcher (`java ClicT
 
 - The ClicTest service URL must be reachable from the runner. GitHub-hosted runners need a public endpoint.
 - Repository secrets `CLICTEST_USER` and `CLICTEST_PASSWORD`.
-- Local-browser runs (`client-ip`) need a self-hosted runner on a machine with the ClicTest agent.
+- Local-browser runs (`client-ip`) need the ClicTest client agent running on the machine with the browsers (see Local browsers). The runner can be anywhere.
 - Gitea: Actions enabled (`[actions] ENABLED=true` in `app.ini`) and an `act_runner` registered. The runner image needs `bash`. The default `node` images have it, but not Java, so keep `java-version` set.
 
 ## Usage
@@ -85,7 +85,7 @@ Branch that holds the workflow (e.g. `master`), Access token.
 | Cannot reach ... must allow cross-origin requests | `http://` service URL or no CORS headers: use the HTTPS URL, enable the CorsFilter |
 | HTTP 404 Not Found | Workflow file missing in that repository, wrong repository, or wrong branch (`main` vs `master`) |
 | HTTP 403 Resource not accessible by personal access token | Token lacks Actions write, or repository not selected on the fine-grained token |
-| HTTP 422 Unexpected inputs | Workflow file predates the `username` / `password` inputs: copy `examples/clictest-run.yml` again |
+| HTTP 422 Unexpected inputs | Workflow file predates the `username` / `password` / `service-url` / `client-ip` inputs: copy `examples/clictest-run.yml` again |
 | Staging run executes on the preprod hub | Each ClicTest Jenkins service runs tests on its own server. Pick the environment in the Configurator (it switches the Service URL), or set `service-url` to that environment's service |
 | Missing required input CLICTEST_USERNAME | Started without a Configurator user and the secrets are not set |
 | Run fails at sign-in | Configurator username / password wrong, or `CLICTEST_USER` / `CLICTEST_PASSWORD` secrets wrong |
@@ -124,6 +124,19 @@ Setup:
    (GitHub fine-grained token: "Actions: Read and write"; Gitea: token with `write:repository`).
    The token stays in the browser tab and goes only to the API base you enter.
 
+### Local browsers
+
+Same as the Jenkins plugin: the ClicTest client agent on your machine reports its browsers to the agent service
+(`<service host>/clictest-agent-service/api/websocket`). When you pick a platform, the page asks the agent service for
+your IP (`/getClientIp`) and that IP's browsers (`/browsers`), and lists them under **Local browsers (IP)** next to the
+ClicTest browsers. Local values look like `LOCALHOST_chrome_149`. When one is selected, Run now also sends `client-ip`,
+and ClicTest runs those executions through the agent on that machine.
+
+- The agent service must allow cross-origin GET on `/getClientIp` and `/browsers` (`@CrossOrigin` in `WebSocketRestController`).
+- Start the client agent before choosing the platform. No agent, or no reply, means no Local browsers group.
+- The IP is the one the agent service sees, so the agent and the browser running this page must be on the same machine.
+- Workflow files need the `client-ip` input (copy `examples/clictest-run.yml` again). Runs with only ClicTest browsers do not send it.
+
 ClicTest server requirements for the page:
 
 - **HTTPS.** The page is served over HTTPS, so browsers block calls to an `http://` service URL (mixed content).
@@ -143,7 +156,7 @@ Lookup calls used: `/envdetails`, `/projectdetails`, `/testsuitedetails`, `/conf
 | `test-suites` | yes | | JSON array: `testSuiteName`, `testSuiteVersion`, `url`, `platform`, `browsers[]` |
 | `service-url` | no | preprod service URL | same as `serviceurl` in the plugin's `config.properties` |
 | `job-name` | no | `GITHUB_REPOSITORY` | sent as `jobName`; build number is `GITHUB_RUN_NUMBER` |
-| `client-ip` | no | empty | local ClicTest agent IP |
+| `client-ip` | no | empty | IP of the machine whose ClicTest client agent runs `LOCALHOST_*` browsers (filled by the configurator) |
 | `max-parallel` | no | `10` | |
 | `poll-interval-seconds` | no | `10` | |
 | `timeout-minutes` | no | `60` | per execution |
